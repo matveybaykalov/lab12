@@ -1,119 +1,159 @@
-##  Отчёт по лабораторной работе №7
+[![Build Status](https://travis-ci.org/matveybaykalov/task_timp_lab04.svg?branch=master)](https://travis-ci.org/matveybaykalov/task_timp_lab08)
+
+## Отчёт по лабораторной работе lab08
 
 ## Tasks
 
-- [x] 1. Создать публичный репозиторий с названием **lab07** на сервисе **GitHub**
-- [x] 2. Выполнить инструкцию учебного материала
-- [x] 3. Ознакомиться со ссылками учебного материала
+- [x] 1. Создать публичный репозиторий с названием **lab08** на сервисе **GitHub**
+- [x] 2. Ознакомиться со ссылками учебного материала
+- [x] 3. Выполнить инструкцию учебного материала
 - [x] 4. Составить отчет и отправить ссылку личным сообщением в **Slack**
 
-## Были выполнены команды из tutorial
-Задаём необходимые алисы и переменные для выполнения работы
+## Tutorial
+Создаём переменную необходимую для выполнения дабораторной работы.
 ```sh
-$ export GITHUB_USERNAME=<имя_пользователя>
-$ alias gsed=sed
+$ export GITHUB_USERNAME=matveybaykalov
 ```
-
-```sh
+Переходим в рабочую дерикторию и активируем скрипт.
+```
 $ cd ${GITHUB_USERNAME}/workspace
 $ pushd .
 $ source scripts/activate
 ```
-Клонируем репозиторий и изменияем URL
+Клонируем репозиторий с предыдущей лабораторной работы в папку lab08 и обновляем URL.
 ```sh
-$ git clone https://github.com/${GITHUB_USERNAME}/lab06 projects/lab07
-$ cd projects/lab07
+$ git clone https://github.com/${GITHUB_USERNAME}/lab07 projects/lab08
+$ cd lab08
+$ git submodule update --init
 $ git remote remove origin
-$ git remote add origin https://github.com/${GITHUB_USERNAME}/lab07
+$ git remote add origin https://github.com/${GITHUB_USERNAME}/lab08
 ```
-Прописываем команды, необходимые для установки hunter
+Создаём файл Dockerfile и записываем в него информацию об образе, который будет использоваться.
 ```sh
-$ mkdir -p cmake
-$ wget https://raw.githubusercontent.com/cpp-pm/gate/master/cmake/HunterGate.cmake -O cmake/HunterGate.cmake
-$ gsed -i '/cmake_minimum_required(VERSION 3.4)/a\
-
-include("cmake/HunterGate.cmake")
-HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.23.251.tar.gz"
-    SHA1 "5659b15dc0884d4b03dbd95710e6a1fa0fc3258d"
-)
-' CMakeLists.txt
-```
-Удаляем, добавленный в предыдущейй работе фреймфорк и добавляем работу с хантером в CMakeLists.txt
-```sh
-$ git rm -rf third-party/gtest
-$ gsed -i '/set(PRINT_VERSION_STRING "v\${PRINT_VERSION}")/a\
-
-hunter_add_package(GTest)
-find_package(GTest CONFIG REQUIRED)
-' CMakeLists.txt
-$ gsed -i 's/add_subdirectory(third-party/gtest)//' CMakeLists.txt
-$ gsed -i 's/gtest_main/GTest::gtest_main/' CMakeLists.txt
-```
-Запустим компиляцию и сборку проекта
-```sh
-$ cmake -H. -B_builds -DBUILD_TESTS=ON
-$ cmake --build _builds
-$ cmake --build _builds --target test
-$ ls -la $HOME/.hunter
-```
-Склонируем пакетный менеджер hunter в домашнюю папку для более детальной работы с ним.
-```sh
-$ git clone https://github.com/cpp-pm/hunter $HOME/projects/hunter
-$ export HUNTER_ROOT=$HOME/projects/hunter
-$ rm -rf _builds
-$ cmake -H. -B_builds -DBUILD_TESTS=ON
-$ cmake --build _builds
-$ cmake --build _builds --target test
-```
-Изменим версию паектного менеджера на 1.7.0
-```sh
-$ cat $HUNTER_ROOT/cmake/configs/default.cmake | grep GTest
-$ cat $HUNTER_ROOT/cmake/projects/GTest/hunter.cmake
-$ mkdir cmake/Hunter
-$ cat > cmake/Hunter/config.cmake <<EOF
-hunter_config(GTest VERSION 1.7.0-hunter-9)
+$ cat > Dockerfile <<EOF
+FROM ubuntu:18.04
 EOF
-# add LOCAL in HunterGate function
 ```
-Добавим файл для демонстрации работы библиотеки print
+Дополняем файл Dockerfile информацией о командах которые будут выполнены. Через эти команды мы обнавляем зависимости установленных приложений, а также устанавливаем программы необходдимые для работы написанной программы.
 ```sh
-$ mkdir demo
-$ cat > demo/main.cpp <<EOF
-#include <print.hpp>
+$ cat >> Dockerfile <<EOF
 
-#include <cstdlib>
-
-int main(int argc, char* argv[])
-{
-  const char* log_path = std::getenv("LOG_PATH");
-  if (log_path == nullptr)
-  {
-    std::cerr << "undefined environment variable: LOG_PATH" << std::endl;
-    return 1;
-  }
-  std::string text;
-  while (std::cin >> text)
-  {
-    std::ofstream out{log_path, std::ios_base::app};
-    print(text, out);
-    out << std::endl;
-  }
-}
+RUN apt update -y
+RUN apt install -yy gcc g++ cmake
 EOF
-Добавляем изменения в файл сборки
-$ gsed -i '/endif()/a\
-
-add_executable(demo ${CMAKE_CURRENT_SOURCE_DIR}/demo/main.cpp)
-target_link_libraries(demo print)
-install(TARGETS demo RUNTIME DESTINATION bin)
-' CMakeLists.txt
 ```
-Воспользуемся утилитой polly для того, чтобы быстро протестировать и проверить наш код
+Копируем все файлы текущей директории в папку print и переходим в неё.
 ```sh
-$ mkdir tools
-$ git submodule add https://github.com/ruslo/polly tools/polly
-$ tools/polly/bin/polly.py --test
-$ tools/polly/bin/polly.py --install
-$ tools/polly/bin/polly.py --toolchain clang-cxx14
+$ cat >> Dockerfile <<EOF
+
+COPY . print/
+WORKDIR print
+EOF
+```
+Выполняем в докере команды по каомпиляции и сборке проекта
+```sh
+$ cat >> Dockerfile <<EOF
+
+RUN cmake -H. -B_build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=_install
+RUN cmake --build _build
+RUN cmake --build _build --target install
+EOF
+```
+Устанавливаем переменную окружения LOG_PATH для работы библиотки print.
+```sh
+$ cat >> Dockerfile <<EOF
+
+ENV LOG_PATH /home/logs/log.txt
+EOF
+```
+Через команду VOLUME передаём директорию, которая может быть монтирована.
+```sh
+$ cat >> Dockerfile <<EOF
+
+VOLUME /home/logs
+EOF
+```
+Устанавливаем рабочую директорию.
+```sh
+$ cat >> Dockerfile <<EOF
+
+WORKDIR _install/bin
+EOF
+```
+Устанавливаем точку входа
+```sh
+$ cat >> Dockerfile <<EOF
+
+CMD ./demo
+EOF
+```
+Соберём образ.
+```sh
+$ docker build -t logger .
+```
+Выведем информацию об образах.
+```sh
+$ docker images
+```
+Запустим докер в интерактивном режиме,протестируем программу demo и указываем директорию куда будут записаны логи.
+```sh
+$ mkdir logs
+$ docker run -it -v "$(pwd)/logs/:/home/logs/" logger
+text1
+text2
+text3
+<C-D>
+```
+Посмотрим внутреннее состояние контейнера.
+```sh
+$ docker inspect logger
+```
+Просмотрим логи.
+```sh
+$ cat logs/log.txt
+```
+Отредактируем конфинурационный файл .travis.yml для того чтобы была возможность на сервисе travis создавать контейнер
+```sh
+$ vim .travis.yml
+/lang<CR>o
+services:
+- docker<ESC>
+jVGdo
+script:
+- docker build -t logger .<ESC>
+:wq
+```
+Загружаем изменения в удалённый репозиторий.
+```sh
+$ git add Dockerfile
+$ git add .travis.yml
+$ git commit -m"adding Dockerfile"
+$ git push origin master
+```
+Включаем видимость репозитория на travis
+```sh
+$ travis login --auto
+$ travis enable
+```
+
+## Report
+
+```sh
+$ popd
+$ export LAB_NUMBER=08
+$ git clone https://github.com/tp-labs/lab${LAB_NUMBER} tasks/lab${LAB_NUMBER}
+$ mkdir reports/lab${LAB_NUMBER}
+$ cp tasks/lab${LAB_NUMBER}/README.md reports/lab${LAB_NUMBER}/REPORT.md
+$ cd reports/lab${LAB_NUMBER}
+$ edit REPORT.md
+$ gist REPORT.md
+```
+
+## Links
+
+- [Book](https://www.dockerbook.com)
+- [Instructions](https://docs.docker.com/engine/reference/builder/)
+
+```
+Copyright (c) 2015-2021 The ISC Authors
 ```
