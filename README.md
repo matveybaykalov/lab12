@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/matveybaykalov/task_timp_lab04.svg?branch=master)](https://travis-ci.org/matveybaykalov/lab08)
+[![Build Status](https://travis-ci.org/matveybaykalov/lab08.svg?branch=master)](https://travis-ci.org/matveybaykalov/lab08)
 
 ## Отчёт по лабораторной работе lab08
 
