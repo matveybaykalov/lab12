@@ -1,137 +1,109 @@
-[![Build Status](https://travis-ci.org/matveybaykalov/lab08.svg?branch=master)](https://travis-ci.org/matveybaykalov/lab08)
+[![Build Status](https://travis-ci.org/matveybaykalov/lab09.svg?branch=master)](https://travis-ci.org/matveybaykalov/lab09)
 
-## Отчёт по лабораторной работе lab08
+## Отчёт по лабораторной работе lab09
 
 ## Tasks
 
-- [x] 1. Создать публичный репозиторий с названием **lab08** на сервисе **GitHub**
+- [x] 1. Создать публичный репозиторий с названием **lab09** на сервисе **GitHub**
 - [x] 2. Ознакомиться со ссылками учебного материала
-- [x] 3. Выполнить инструкцию учебного материала
-- [x] 4. Составить отчет и отправить ссылку личным сообщением в **Slack**
+- [x] 3. Получить токен для доступа к репозиториям сервиса **GitHub**
+- [x] 4. Выполнить инструкцию учебного материала
+- [x] 5. Составить отчет и отправить ссылку личным сообщением в **Slack**
 
-## Tutorial
-Создаём переменную необходимую для выполнения дабораторной работы.
+## Были выполнены команды tutorial
+Задаём необходимые переменные.
 ```sh
 $ export GITHUB_USERNAME=matveybaykalov
+$ export PACKAGE_MANAGER='sudo apt'
+$ export GPG_PACKAGE_NAME=gpg
 ```
-Переходим в рабочую дерикторию и активируем скрипт.
+устанавливаем xclip и необходимые алиасы.
+```sh
+$ $PACKAGE_MANAGER install xclip
+$ alias gsed=sed
+$ alias pbcopy='xclip -selection clipboard'
+$ alias pbpaste='xclip -selection clipboard -o'
 ```
+Переходим в рабочую директорию и активируем скрипт.
+```sh
 $ cd ${GITHUB_USERNAME}/workspace
 $ pushd .
 $ source scripts/activate
+$ go get github.com/aktau/github-release
 ```
-Клонируем репозиторий с предыдущей лабораторной работы в папку lab08 и обновляем URL.
+Клонируем репозиторий с предыдущей лабораторной работы и обновляем URL.
 ```sh
-$ git clone https://github.com/${GITHUB_USERNAME}/lab07 projects/lab08
-$ cd lab08
-$ git submodule update --init
+$ git clone https://github.com/${GITHUB_USERNAME}/lab08 projects/lab09
+$ cd projects/lab09
 $ git remote remove origin
-$ git remote add origin https://github.com/${GITHUB_USERNAME}/lab08
+$ git remote add origin https://github.com/${GITHUB_USERNAME}/lab09
 ```
-Создаём файл Dockerfile и записываем в него информацию об образе, который будет использоваться.
+Заменяем lab08 на lab09.
 ```sh
-$ cat > Dockerfile <<EOF
-FROM ubuntu:18.04
-EOF
+$ gsed -i 's/lab08/lab09/g' README.md
 ```
-Дополняем файл Dockerfile информацией о командах которые будут выполнены. Через эти команды мы обнавляем зависимости установленных приложений, а также устанавливаем программы необходдимые для работы написанной программы.
+В данном блоке команд мы устанавливаем gpg. Затем выводим уже существующие ключи и задаём формат отображения идентификаторов ключей. Потом генерируем ключ и снова выводим. Далее мы задаём две переменные GPG_KEY_ID и GPG_SEC_KEY_ID. Затем мы переводим GPG_KEY_ID в ASKII, копируем в буфер обмена и выводим его содержимое. Далее мы обновляем в конфигурацию git информацию о ключе gpg.
 ```sh
-$ cat >> Dockerfile <<EOF
-
-RUN apt update -y
-RUN apt install -yy gcc g++ cmake
-EOF
+$ $PACKAGE_MANAGER install ${GPG_PACKAGE_NAME}
+$ gpg --list-secret-keys --keyid-format LONG
+$ gpg --full-generate-key
+$ gpg --list-secret-keys --keyid-format LONG
+$ gpg -K ${GITHUB_USERNAME}
+$ GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep ssb | tail -1 | awk '{print $2}' | awk -F'/' '{print $2}')
+$ GPG_SEC_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | tail -1 | awk '{print $2}' | awk -F'/' '{print $2}')
+$ gpg --armor --export ${GPG_KEY_ID} | pbcopy
+$ pbpaste
+$ open https://github.com/settings/keys
+$ git config user.signingkey ${GPG_SEC_KEY_ID}
+$ git config gpg.program gpg
 ```
-Копируем все файлы текущей директории в папку print и переходим в неё.
+Проверяем, есть ли доступ к .bash_profile и записываем переменную GPG_TTY со значением $(tty). Такую же переменную записываем в файл .profile.
 ```sh
-$ cat >> Dockerfile <<EOF
-
-COPY . print/
-WORKDIR print
-EOF
+$ test -r ~/.bash_profile && echo 'export GPG_TTY=$(tty)' >> ~/.bash_profile
+$ echo 'export GPG_TTY=$(tty)' >> ~/.profile
 ```
-Выполняем в докере команды по каомпиляции и сборке проекта
+Запускаем комапилицию проекту и выполняем сборку с созданием пакета.
 ```sh
-$ cat >> Dockerfile <<EOF
-
-RUN cmake -H. -B_build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=_install
-RUN cmake --build _build
-RUN cmake --build _build --target install
-EOF
+$ cmake -H. -B_build -DCPACK_GENERATOR="TGZ"
+$ cmake --build _build --target package
 ```
-Устанавливаем переменную окружения LOG_PATH для работы библиотки print.
-```sh
-$ cat >> Dockerfile <<EOF
-
-ENV LOG_PATH /home/logs/log.txt
-EOF
-```
-Через команду VOLUME передаём директорию, которая может быть монтирована.
-```sh
-$ cat >> Dockerfile <<EOF
-
-VOLUME /home/logs
-EOF
-```
-Устанавливаем рабочую директорию.
-```sh
-$ cat >> Dockerfile <<EOF
-
-WORKDIR _install/bin
-EOF
-```
-Устанавливаем точку входа
-```sh
-$ cat >> Dockerfile <<EOF
-
-CMD ./demo
-EOF
-```
-Соберём образ.
-```sh
-$ docker build -t logger .
-```
-Выведем информацию об образах.
-```sh
-$ docker images
-```
-Запустим докер в интерактивном режиме,протестируем программу demo и указываем директорию куда будут записаны логи.
-```sh
-$ mkdir logs
-$ docker run -it -v "$(pwd)/logs/:/home/logs/" logger
-text1
-text2
-text3
-<C-D>
-```
-Посмотрим внутреннее состояние контейнера.
-```sh
-$ docker inspect logger
-```
-Просмотрим логи.
-```sh
-$ cat logs/log.txt
-```
-Отредактируем конфинурационный файл .travis.yml для того чтобы была возможность на сервисе travis создавать контейнер
-```sh
-$ vim .travis.yml
-/lang<CR>o
-services:
-- docker<ESC>
-jVGdo
-script:
-- docker build -t logger .<ESC>
-:wq
-```
-Загружаем изменения в удалённый репозиторий.
-```sh
-$ git add Dockerfile
-$ git add .travis.yml
-$ git commit -m"adding Dockerfile"
-$ git push origin master
-```
-Включаем видимость репозитория на travis
+Авторизируемся в сервисе travis и добавляем видимость текущему репозиторию.
 ```sh
 $ travis login --auto
 $ travis enable
+```
+Создаём метку и "подписываем" её ключом gpg
+```sh
+$ git tag -s v0.1.0.0
+$ git tag -v v0.1.0.0
+$ git show v0.1.0.0
+$ git push origin master --tags
+```
+СОздаём релиз нашего пректа на GITHUB.
+```sh
+$ github-release --version
+$ github-release info -u ${GITHUB_USERNAME} -r lab09
+$ github-release release \
+    --user ${GITHUB_USERNAME} \
+    --repo lab09 \
+    --tag v0.1.0.0 \
+    --name "libprint" \
+    --description "my first release"
+```
+Загружаем пакет в релиз на GITHUB.
+```sh
+$ export PACKAGE_OS=`uname -s` PACKAGE_ARCH=`uname -m` 
+$ export PACKAGE_FILENAME=print-${PACKAGE_OS}-${PACKAGE_ARCH}.tar.gz
+$ github-release upload \
+    --user ${GITHUB_USERNAME} \
+    --repo lab09 \
+    --tag v0.1.0.0 \
+    --name "${PACKAGE_FILENAME}" \
+    --file _build/*.tar.gz
+```
+
+```sh
+$ github-release info -u ${GITHUB_USERNAME} -r lab09
+$ wget https://github.com/${GITHUB_USERNAME}/lab09/releases/download/v0.1.0.0/${PACKAGE_FILENAME}
+$ tar -ztf ${PACKAGE_FILENAME}
 ```
