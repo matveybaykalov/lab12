@@ -135,25 +135,3 @@ $ git push origin master
 $ travis login --auto
 $ travis enable
 ```
-
-## Report
-
-```sh
-$ popd
-$ export LAB_NUMBER=08
-$ git clone https://github.com/tp-labs/lab${LAB_NUMBER} tasks/lab${LAB_NUMBER}
-$ mkdir reports/lab${LAB_NUMBER}
-$ cp tasks/lab${LAB_NUMBER}/README.md reports/lab${LAB_NUMBER}/REPORT.md
-$ cd reports/lab${LAB_NUMBER}
-$ edit REPORT.md
-$ gist REPORT.md
-```
-
-## Links
-
-- [Book](https://www.dockerbook.com)
-- [Instructions](https://docs.docker.com/engine/reference/builder/)
-
-```
-Copyright (c) 2015-2021 The ISC Authors
-```
