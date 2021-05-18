@@ -1,109 +1,80 @@
-[![Build Status](https://travis-ci.org/matveybaykalov/lab09.svg?branch=master)](https://travis-ci.org/matveybaykalov/lab09)
-
-## Отчёт по лабораторной работе lab09
+## Отчёт по лабораторной работе lab12
 
 ## Tasks
 
-- [x] 1. Создать публичный репозиторий с названием **lab09** на сервисе **GitHub**
-- [x] 2. Ознакомиться со ссылками учебного материала
-- [x] 3. Получить токен для доступа к репозиториям сервиса **GitHub**
-- [x] 4. Выполнить инструкцию учебного материала
-- [x] 5. Составить отчет и отправить ссылку личным сообщением в **Slack**
+- [x] 1. Создать публичный репозиторий с названием **lab12** на сервисе **GitHub**
+- [x] 2. Выполнить инструкцию учебного материала
+- [x] 3. Ознакомиться со ссылками учебного материала
+- [x] 4. Составить отчет и отправить ссылку личным сообщением в **Slack**
 
-## Были выполнены команды tutorial
-Задаём необходимые переменные.
-```sh
+## Tutorial
+Устанавливаем переменные необходимые для выполнения лабораторной работы
+```ShellSession
 $ export GITHUB_USERNAME=matveybaykalov
-$ export PACKAGE_MANAGER='sudo apt'
-$ export GPG_PACKAGE_NAME=gpg
+$ export HUNTER_VERSION=2.0.5
 ```
-устанавливаем xclip и необходимые алиасы.
-```sh
-$ $PACKAGE_MANAGER install xclip
-$ alias gsed=sed
-$ alias pbcopy='xclip -selection clipboard'
-$ alias pbpaste='xclip -selection clipboard -o'
+Открываем учебное пособие по vim на русском языке
+```ShellSession
+$ vimtutor ru
 ```
-Переходим в рабочую директорию и активируем скрипт.
-```sh
-$ cd ${GITHUB_USERNAME}/workspace
-$ pushd .
-$ source scripts/activate
-$ go get github.com/aktau/github-release
-```
-Клонируем репозиторий с предыдущей лабораторной работы и обновляем URL.
-```sh
-$ git clone https://github.com/${GITHUB_USERNAME}/lab08 projects/lab09
-$ cd projects/lab09
+Клонируем репозиторий с предыдущей добораторной работы и изменяем URL.
+```ShellSession
+$ git clone https://github.com/${GITHUB_USERNAME}/lab11 lab12
+$ cd lab12
 $ git remote remove origin
-$ git remote add origin https://github.com/${GITHUB_USERNAME}/lab09
+$ git remote add origin https://github.com/${GITHUB_USERNAME}/lab12
 ```
-Заменяем lab08 на lab09.
-```sh
-$ gsed -i 's/lab08/lab09/g' README.md
+Открываем файл README.md и добавляем в него строчку, после чего закрываем и сохраняем файл.
+```ShellSession
+$ vim README.md
+:s/lab11/lab12/g
+/file<CR>wChaving the path environment variable value **LOG_PATH**<ESC>
+:wq
 ```
-В данном блоке команд мы устанавливаем gpg. Затем выводим уже существующие ключи и задаём формат отображения идентификаторов ключей. Потом генерируем ключ и снова выводим. Далее мы задаём две переменные GPG_KEY_ID и GPG_SEC_KEY_ID. Затем мы переводим GPG_KEY_ID в ASKII, копируем в буфер обмена и выводим его содержимое. Далее мы обновляем в конфигурацию git информацию о ключе gpg.
-```sh
-$ $PACKAGE_MANAGER install ${GPG_PACKAGE_NAME}
-$ gpg --list-secret-keys --keyid-format LONG
-$ gpg --full-generate-key
-$ gpg --list-secret-keys --keyid-format LONG
-$ gpg -K ${GITHUB_USERNAME}
-$ GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep ssb | tail -1 | awk '{print $2}' | awk -F'/' '{print $2}')
-$ GPG_SEC_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | tail -1 | awk '{print $2}' | awk -F'/' '{print $2}')
-$ gpg --armor --export ${GPG_KEY_ID} | pbcopy
-$ pbpaste
-$ open https://github.com/settings/keys
-$ git config user.signingkey ${GPG_SEC_KEY_ID}
-$ git config gpg.program gpg
+Отредакируем файл demo.cpp, добавив переменную окружения LOG_PATH.
+```ShellSession
+$ vim sources/demo.cpp
+Yp3wct>cstdlib<ESC>
+/while<CR>ostd::string log_path = std::getenv("LOG_PATH");<ESC>
+/"log<CR>
+cf"log_path<ESC>
+k2dd2kpVj<
+:wq
 ```
-Проверяем, есть ли доступ к .bash_profile и записываем переменную GPG_TTY со значением $(tty). Такую же переменную записываем в файл .profile.
-```sh
-$ test -r ~/.bash_profile && echo 'export GPG_TTY=$(tty)' >> ~/.bash_profile
-$ echo 'export GPG_TTY=$(tty)' >> ~/.profile
+Создаём дополнительную ветку и делаем релиз
+```ShellSession
+$ pushd $HUNTER_ROOT
+$ git config --global hub.protocol https
+$ git fork
+$ git branch -u ${GITHUB_USERNAME}/master master
+...
+$ git release create -m"${HUNTER_VERSION}.1" ${HUNTER_VERSION}.1
+$ git release show ${HUNTER_VERSION}.1
 ```
-Запускаем комапилицию проекту и выполняем сборку с созданием пакета.
-```sh
-$ cmake -H. -B_build -DCPACK_GENERATOR="TGZ"
-$ cmake --build _build --target package
+Для проверки скачиваем полученный архив.
+```ShellSession
+$ wget https://github.com/${GITHUB_USERNAME}/hunter/archive/${HUNTER_VERSION}.1.tar.gz
+$ export MYHUNTER_SHA1=`openssl sha1 ${HUNTER_VERSION}.1.tar.gz | cut -d'=' -f2 | cut -c2-41`
+$ echo $MYHUNTER_SHA1
+$ rm -rf ${HUNTER_VERSION}.1.tar.gz
 ```
-Авторизируемся в сервисе travis и добавляем видимость текущему репозиторию.
-```sh
+Обновляем хеш сумму в файле CMakeLists.txt
+```ShellSession
+$ popd
+$ echo $MYHUNTER_SHA1 | pbcopy
+$ vim CMakeLists.txt
+/SHA1<CR>
+wc2w<C-V><ESC>
+:wq
+```
+Добавляем все изменения, комитим и отправляем на удалённый сервер.
+```ShellSession
+$ git add .
+$ git commit -m"refactoring"
+$ git push origin master
+```
+Логинимся в travis и включаем видимость репозитория.
+```ShellSession
 $ travis login --auto
 $ travis enable
-```
-Создаём метку и "подписываем" её ключом gpg
-```sh
-$ git tag -s v0.1.0.0
-$ git tag -v v0.1.0.0
-$ git show v0.1.0.0
-$ git push origin master --tags
-```
-СОздаём релиз нашего пректа на GITHUB.
-```sh
-$ github-release --version
-$ github-release info -u ${GITHUB_USERNAME} -r lab09
-$ github-release release \
-    --user ${GITHUB_USERNAME} \
-    --repo lab09 \
-    --tag v0.1.0.0 \
-    --name "libprint" \
-    --description "my first release"
-```
-Загружаем пакет в релиз на GITHUB.
-```sh
-$ export PACKAGE_OS=`uname -s` PACKAGE_ARCH=`uname -m` 
-$ export PACKAGE_FILENAME=print-${PACKAGE_OS}-${PACKAGE_ARCH}.tar.gz
-$ github-release upload \
-    --user ${GITHUB_USERNAME} \
-    --repo lab09 \
-    --tag v0.1.0.0 \
-    --name "${PACKAGE_FILENAME}" \
-    --file _build/*.tar.gz
-```
-
-```sh
-$ github-release info -u ${GITHUB_USERNAME} -r lab09
-$ wget https://github.com/${GITHUB_USERNAME}/lab09/releases/download/v0.1.0.0/${PACKAGE_FILENAME}
-$ tar -ztf ${PACKAGE_FILENAME}
 ```

@@ -1,10 +1,9 @@
 #include <print.hpp>
+#include <cstlib>
 
-#include <cstdlib>
-
-int main(int argc, char* argv[])
 {
-  const char* log_path = std::getenv("LOG_PATH");
+const char* log_path = std::getenv("LOG_PATH");
+int main(int argc, char* argv[])
   if (log_path == nullptr)
   {
     std::cerr << "undefined environment variable: LOG_PATH" << std::endl;
@@ -12,6 +11,7 @@ int main(int argc, char* argv[])
   }
   std::string text;
   while (std::cin >> text)
+	  std::string log_path = std::getenv("LOG_PATH");
   {
     std::ofstream out{log_path, std::ios_base::app};
     print(text, out);
